@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Asistente Virtual basado en IA simulado para la Ruta Chinantla.">
+    <title>Asistente Virtual IA - Ruta Chinantla</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar: Corpus Information -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <i class="fa-solid fa-database logo-icon"></i>
+                <h2>Corpus Comunitario</h2>
+            </div>
+            <div class="sidebar-content">
+                <p class="description">
+                    Base de conocimiento integrada por la comunidad. El asistente procesa la información en tiempo real para recomendarte experiencias en la Ruta Chinantla.
+                </p>
+                <div class="knowledge-stats">
+                    <div class="stat">
+                        <span class="stat-value">11</span>
+                        <span class="stat-label">Comunidades</span>
+                    </div>
+                    <div class="stat">
+                        <span class="stat-value">2</span>
+                        <span class="stat-label">Etnias</span>
+                    </div>
+                </div>
+                <h3>Rutas Indexadas:</h3>
+                <ul class="route-list">
+                    <li>Santiago Comaltepec</li>
+                    <li>Santa Cruz Tepetotutla</li>
+                    <li>San Antonio del Barrio</li>
+                    <li>Valle Nacional</li>
+                    <li>San Mateo Yetla</li>
+                    <li>Rancho Grande</li>
+                    <li>Cerro Marín (Monte Flor)</li>
+                    <li>Vega del Sol</li>
+                    <li>San Pedro Ixcatlán</li>
+                    <li>Cerro Quemado</li>
+                    <li>San Miguel Soyaltepec</li>
+                    <li>Tuxtepec</li>
+                </ul>
+            </div>
+            <div class="sidebar-footer">
+                <div class="status-indicator">
+                    <div class="pulse"></div>
+                    <span>LLM Engine: Online</span>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Chat Area -->
+        <main class="chat-area">
+            <header class="chat-header">
+                <div>
+                    <h1 class="chat-title">ChinantlaAI Assistant</h1>
+                    <p class="chat-subtitle">Tu guía inteligente para explorar el paraíso oaxaqueño</p>
+                </div>
+                <button id="theme-toggle" class="icon-btn" aria-label="Cambiar tema">
+                    <i class="fa-solid fa-moon"></i>
+                </button>
+            </header>
+
+            <div class="messages-container" id="messages">
+                <!-- Messages will be injected here by JS -->
+                <div class="message ai-message">
+                    <div class="avatar"><i class="fa-solid fa-robot"></i></div>
+                    <div class="message-content">
+                        <p>¡Hola! Soy tu asistente de la Ruta Chinantla alimentado por el corpus comunitario. 🌿 Puedo recomendarte destinos, hablarte sobre la cultura de los pueblos chinantecos y mazatecos, o darte información sobre lugares específicos. ¿En qué te puedo ayudar hoy?</p>
+                        <div class="suggestion-chips">
+                            <button class="chip">Quiero ver cascadas</button>
+                            <button class="chip">Háblame de San Mateo Yetla</button>
+                            <button class="chip">¿Qué comer en la ruta?</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="input-area">
+                <form id="chat-form">
+                    <input type="text" id="user-input" placeholder="Pregunta sobre algún pueblo, actividad o cultura..." autocomplete="off">
+                    <button type="submit" id="send-btn">
+                        <i class="fa-solid fa-paper-plane"></i>
+                    </button>
+                </form>
+                <div class="typing-indicator hidden" id="typing-indicator">
+                    <span>ChinantlaAI está pensando</span>
+                    <div class="dots">
+                        <div class="dot"></div><div class="dot"></div><div class="dot"></div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+    <script src="app.js"></script>
+</body>
+</html>

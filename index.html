@@ -1,0 +1,1118 @@
+<!--
+RUTA OAXACA EXPLORER 2026
+VERSIÓN MULTIRUTAS
+GPS REAL + GPS SIMULADO + OFFLINE READY
+-->
+
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <title>Rutas Oaxaca: Voces del Territorio</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <style>
+        html,
+        body {
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            overflow: hidden;
+            font-family: Inter, sans-serif;
+            background: #000;
+        }
+
+        #map {
+            width: 100%;
+            height: 100%;
+        }
+
+        .glass {
+            background: rgba(15, 23, 42, .72);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, .08);
+        }
+
+        .sidebar {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            width: 360px;
+            max-height: 90vh;
+            overflow: auto;
+            z-index: 999;
+        }
+
+        .bottom-ui {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            right: 20px;
+            z-index: 999;
+        }
+
+        .route-btn {
+            transition: .25s;
+        }
+
+        .route-btn:hover {
+            transform: translateY(-2px);
+            border-color: #fb923c;
+        }
+
+        .live-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 100%;
+            background: #22c55e;
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            from {
+                transform: scale(1);
+                opacity: 1;
+            }
+
+            to {
+                transform: scale(2);
+                opacity: 0;
+            }
+        }
+
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 20px;
+        }
+
+        .leaflet-control-layers {
+            background: rgba(15, 23, 42, 0.9) !important;
+            border: 1px solid rgba(255, 255, 255, 0.1) !important;
+            color: #e2e8f0 !important;
+            border-radius: 1rem !important;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5) !important;
+            padding: 8px;
+            backdrop-filter: blur(10px);
+        }
+        .leaflet-control-layers-separator {
+            border-top: 1px solid rgba(255,255,255,0.1) !important;
+        }
+        .leaflet-control-layers-list {
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        .custom-popup .leaflet-popup-content-wrapper, 
+        .custom-popup .leaflet-popup-tip { 
+            background: #0f172a; 
+            padding: 0; 
+            overflow: hidden; 
+            border: 1px solid rgba(6,182,212,0.3); 
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
+        }
+        .custom-popup .leaflet-popup-content { 
+            margin: 0; 
+            width: 192px !important;
+        }
+        .custom-popup .leaflet-popup-close-button {
+            color: white !important;
+            text-shadow: 0 1px 2px black;
+            z-index: 10;
+        }
+    </style>
+
+</head>
+
+<body>
+
+    <div id="map"></div>
+
+    <!-- SIDEBAR -->
+
+    <div class="sidebar">
+
+        <div class="glass rounded-3xl p-5 shadow-2xl">
+
+            <div class="flex items-center justify-between mb-4">
+
+                <div>
+
+                    <h1 class="text-white text-2xl font-black flex items-center gap-2">
+                        <i data-lucide="map"></i>
+                        RUTAS OAXACA
+                        <span class="block text-slate-100 drop-shadow-md text-[18px] tracking-widest mt-1">VOCES DEL TERRITORIO</span>
+                    </h1>
+
+                    <p class="text-slate-300 text-xs mt-1">
+                        Explorer 2026 • GPS Inteligente
+                    </p>
+
+                </div>
+
+                <div class="flex items-center gap-2">
+
+                    <div class="live-dot"></div>
+
+                    <span class="text-green-400 text-xs font-bold">
+                        ONLINE
+                    </span>
+
+                </div>
+
+            </div>
+
+            <div class="mb-4">
+
+                <select id="routeSelector"
+                    class="w-full bg-slate-900 text-white p-3 rounded-2xl border border-slate-700 outline-none"
+                    onchange="loadRoute(this.value)">
+
+                    <option value="istmo">Ruta del Istmo</option>
+                    <option value="mixteca">Ruta Mixteca</option>
+                    <option value="artesanias">Ruta Artesanías</option>
+                    <option value="juquila">Ruta Juquila</option>
+                    <option value="mezcal">Ruta del Mezcal</option>
+                    <option value="costa">Ruta Costa</option>
+                    <option value="sierra">Ruta Sierra Juárez</option>
+                    <option value="biosfera">Ruta Biósfera</option>
+                    <option value="cafe">Ruta del Café</option>
+                    <option value="chinantla">Ruta Chinantla</option>
+
+                </select>
+
+            </div>
+
+            <div id="destinations" class="space-y-3"></div>
+
+        </div>
+
+    </div>
+
+    <!-- PANEL INFERIOR -->
+
+    <div class="bottom-ui">
+
+        <div class="glass rounded-3xl p-5">
+
+            <div class="flex justify-between items-center">
+
+                <div>
+
+                    <div class="flex items-center gap-2">
+
+                        <div id="gpsStatus" class="w-3 h-3 rounded-full bg-red-500"></div>
+
+                        <span id="gpsText" class="text-white font-bold text-sm">
+                            GPS INACTIVO
+                        </span>
+
+                    </div>
+
+                    <p id="locationText" class="text-slate-300 text-xs mt-2">
+                        Esperando simulación...
+                    </p>
+
+                </div>
+
+                <div class="flex gap-2">
+
+                    <button onclick="startSimulation()"
+                        class="bg-green-600 hover:bg-green-700 text-white px-5 py-3 rounded-2xl font-bold flex items-center gap-2">
+                        <i data-lucide="play"></i>
+                        Iniciar
+                    </button>
+
+                    <button onclick="stopSimulation()"
+                        class="bg-red-600 hover:bg-red-700 text-white px-5 py-3 rounded-2xl font-bold flex items-center gap-2">
+                        <i data-lucide="square"></i>
+                        Detener
+                    </button>
+
+                    <button onclick="activateRealGPS()"
+                        class="bg-orange-600 hover:bg-orange-700 text-white px-5 py-3 rounded-2xl font-bold flex items-center gap-2">
+                        <i data-lucide="satellite"></i>
+                        GPS Real
+                    </button>
+
+                </div>
+
+            </div>
+
+            <div class="mt-4">
+
+                <div class="flex justify-between text-xs text-slate-300 mb-2">
+
+                    <span>Progreso Ruta</span>
+
+                    <span id="progressText">0%</span>
+
+                </div>
+
+                <div class="w-full h-3 bg-slate-700 rounded-full overflow-hidden">
+
+                    <div id="progressBar" class="h-full bg-gradient-to-r from-orange-500 to-red-600" style="width:0%">
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- CHATBOT BOTÓN -->
+    <button onclick="toggleChat()"
+        class="fixed bottom-8 right-8 bg-slate-900 hover:bg-slate-800 transition-all duration-300 transform hover:scale-105 hover:-translate-y-1 text-white p-4 rounded-2xl shadow-[0_0_40px_rgba(6,182,212,0.3)] flex items-center gap-3 z-[1000] border border-cyan-500/30 group backdrop-blur-xl">
+        <div class="relative w-8 h-8 flex items-center justify-center">
+            <div
+                class="absolute inset-0 bg-cyan-400 rounded-full blur-md opacity-50 group-hover:opacity-100 transition-opacity">
+            </div>
+            <img src="savi.png" alt="SAVI Logo" class="relative w-6 h-6 object-contain z-10">
+        </div>
+        <div class="flex flex-col items-start">
+            <span
+                class="font-black tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 to-indigo-400 leading-none">SAVI</span>
+            <span class="text-[10px] text-cyan-500 uppercase font-bold tracking-widest mt-1 leading-none">IA
+                Activa</span>
+        </div>
+    </button>
+
+    <!-- CHATBOT PANEL -->
+    <div id="chatPanel"
+        class="fixed top-0 right-0 h-full w-[420px] max-w-[90vw] bg-slate-900/90 backdrop-blur-2xl transform translate-x-full transition-transform duration-300 z-[1001] border-l border-white/10 flex flex-col shadow-[-20px_0_40px_rgba(0,0,0,0.5)]">
+        <div class="p-6 border-b border-white/10 flex justify-between items-center relative overflow-hidden">
+            <div class="absolute inset-0 bg-gradient-to-r from-cyan-500/10 to-indigo-500/10"></div>
+            <div class="relative flex items-center gap-4">
+                <div
+                    class="w-10 h-10 rounded-xl bg-slate-800 flex items-center justify-center border border-cyan-500/40 shadow-[0_0_15px_rgba(6,182,212,0.4)]">
+                    <img src="savi.png" alt="SAVI Logo"
+                        class="w-6 h-6 object-contain drop-shadow-[0_0_8px_rgba(6,182,212,0.8)]">
+                </div>
+                <div>
+                    <h2 class="text-white font-black text-xl tracking-widest uppercase drop-shadow-md">
+                        SAVI <span class="text-cyan-400 text-sm font-bold">1.0</span>
+                    </h2>
+                    <p class="text-[11px] text-cyan-200/70 font-semibold tracking-wider uppercase mt-0.5">Ñuu Savi •
+                        Pueblo de la Lluvia</p>
+                    <div class="mt-1.5 inline-flex items-center gap-1.5 bg-green-500/10 border border-green-500/30 px-2 py-0.5 rounded-full shadow-[0_0_10px_rgba(34,197,94,0.2)]">
+                        <div class="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse"></div>
+                        <span class="text-[9px] text-green-400 font-bold tracking-widest uppercase">Corpus Comunitario Verificado</span>
+                    </div>
+                </div>
+            </div>
+            <button onclick="toggleChat()"
+                class="relative bg-slate-800/50 hover:bg-slate-700 text-slate-300 hover:text-white p-2 rounded-lg transition border border-white/5">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+        </div>
+
+        <div id="chatMessages" class="flex-1 overflow-y-auto p-6 space-y-6 scroll-smooth">
+            <!-- Default AI greeting -->
+            <div class="flex gap-4 max-w-[95%]">
+                <div
+                    class="w-10 h-10 rounded-xl bg-slate-800 flex items-center justify-center shrink-0 mt-1 border border-cyan-500/30 shadow-[0_0_15px_rgba(6,182,212,0.2)]">
+                    <img src="savi.png" alt="SAVI Logo" class="w-6 h-6 object-contain">
+                </div>
+                <div
+                    class="bg-slate-800/80 p-5 rounded-2xl rounded-tl-sm border border-slate-700 shadow-xl backdrop-blur-sm">
+                    <p class="text-sm text-slate-200 font-medium leading-relaxed">¡Hola! Soy <span
+                            class="text-cyan-400 font-bold">SAVI</span>. Fui entrenada exclusivamente con el <span class="text-indigo-400 font-bold">Corpus de Conocimiento Comunitario</span> de los pueblos de Oaxaca.</p>
+                    <p class="text-[13px] text-slate-400 mt-2 bg-slate-900/50 p-3 rounded-lg border border-slate-700/50 leading-relaxed"><i data-lucide="shield-check" class="w-4 h-4 text-green-400 inline mb-0.5 mr-1"></i> Mis recomendaciones se basan <b class="text-slate-300">100% en las voces, opiniones y saberes</b> de las personas locales. No invento información. ¿Qué maravillas de nuestro territorio te gustaría explorar hoy?</p>
+                    <div class="mt-5 flex flex-col gap-3">
+                        <button onclick="simulateQuery('Recomiéndame un pueblo de la Chinantla')"
+                            class="text-xs bg-slate-900/50 hover:bg-cyan-900/40 text-cyan-300 py-3 px-4 rounded-xl text-left transition-all border border-cyan-500/20 hover:border-cyan-400/50 flex items-center gap-3 group">
+                            <div class="bg-cyan-500/10 p-2 rounded-lg group-hover:bg-cyan-500/20 transition-colors"><i
+                                    data-lucide="map" class="w-4 h-4 text-cyan-400"></i></div>
+                            <span class="font-medium tracking-wide">Descubrir un pueblo mágico</span>
+                        </button>
+                        <button onclick="simulateQuery('¿Dónde puedo comer caldo de piedra?')"
+                            class="text-xs bg-slate-900/50 hover:bg-cyan-900/40 text-cyan-300 py-3 px-4 rounded-xl text-left transition-all border border-cyan-500/20 hover:border-cyan-400/50 flex items-center gap-3 group">
+                            <div class="bg-cyan-500/10 p-2 rounded-lg group-hover:bg-cyan-500/20 transition-colors"><i
+                                    data-lucide="coffee" class="w-4 h-4 text-cyan-400"></i></div>
+                            <span class="font-medium tracking-wide">Dónde probar el Caldo de Piedra</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="p-5 border-t border-slate-700 bg-slate-900 shadow-[0_-10px_40px_rgba(0,0,0,0.5)]">
+            <form id="chatForm" onsubmit="handleChatSubmit(event)" class="relative flex items-center">
+                <input type="text" id="chatInput" autocomplete="off" placeholder="Escribe tu consulta a SAVI..."
+                    class="w-full bg-slate-800/80 text-white text-sm pl-5 pr-14 py-4 rounded-2xl border border-slate-600 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-all placeholder-slate-500 shadow-inner">
+                <button type="submit"
+                    class="absolute right-2 top-1/2 transform -translate-y-1/2 bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-400 hover:to-blue-400 text-white p-2.5 rounded-xl transition-all shadow-lg flex items-center justify-center">
+                    <i data-lucide="send" class="w-4 h-4"></i>
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+
+        /* =========================================================
+           MAPA Y CAPAS TEMÁTICAS
+        ========================================================= */
+
+        const map = L.map('map', {
+            zoomControl: false
+        }).setView([17.0, -96.7], 8);
+
+        // Capa Base 1: Satélite
+        const satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+            maxZoom: 19,
+            attribution: 'Tiles &copy; Esri'
+        });
+
+        // Capa Base 2: Cartografía Ligera
+        const lightLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+            maxZoom: 19,
+            attribution: '© OpenStreetMap contributors © CARTO'
+        });
+
+        satelliteLayer.addTo(map);
+
+        // Capas Temáticas Comunitarias
+        const layerRutas = L.layerGroup();
+        const layerSaberes = L.layerGroup();
+        const layerLugares = L.layerGroup();
+        const layerArquitectura = L.layerGroup();
+        const layerSostenibilidad = L.layerGroup();
+        const layerGobernanza = L.layerGroup();
+        const layerIdentidad = L.layerGroup();
+
+        const baseMaps = {
+            "Vista Satélite": satelliteLayer,
+            "Cartografía Ligera": lightLayer
+        };
+
+        const overlayMaps = {
+            "🧭 Rutas Bioculturales": layerRutas,
+            "🌱 Saberes y Oficios": layerSaberes,
+            "⛰️ Lugares Significativos": layerLugares,
+            "🛖 Arquitectura Vernácula": layerArquitectura,
+            "🌿 Sostenibilidad": layerSostenibilidad,
+            "🤝 Gobernanza y Comunidad": layerGobernanza,
+            "🌎 Identidad y Futuro": layerIdentidad
+        };
+
+        L.control.layers(baseMaps, overlayMaps, { position: 'topright' }).addTo(map);
+
+        // Iconografía Orgánica
+        function createOrganicIcon(emoji, bgColor) {
+            return L.divIcon({
+                html: `<div style="background:${bgColor}; border: 2px solid #fff; width:30px; height:30px; border-radius:50%; display:flex; align-items:center; justify-content:center; box-shadow:0 4px 6px rgba(0,0,0,0.3); font-size: 16px;">${emoji}</div>`,
+                className: '',
+                iconSize: [30, 30],
+                iconAnchor: [15, 15],
+                popupAnchor: [0, -15]
+            });
+        }
+
+        const icons = {
+            rutas: createOrganicIcon("🧭", "#8B5A2B"), // Tierra
+            saberes: createOrganicIcon("🌱", "#556B2F"), // Verde olivo
+            lugares: createOrganicIcon("⛰️", "#8B4513"), // Ocre
+            arquitectura: createOrganicIcon("🛖", "#A0522D"), // Adobe
+            sostenibilidad: createOrganicIcon("🌿", "#2E8B57"), // Verde bosque
+            gobernanza: createOrganicIcon("🤝", "#B8860B"), // Mostaza oscuro
+            identidad: createOrganicIcon("🌎", "#4682B4") // Azul acero
+        };
+
+        // Base de Datos Simulada de Puntos Bioculturales con Imágenes
+        const bioculturalData = [
+            // Ruta Chinantla
+            { lat: 17.5656, lng: -96.5489, title: "Cerro Pelón", desc: "Lugar sagrado y pico montañoso rodeado de niebla.", img: "https://picsum.photos/id/1015/300/200", layer: "lugares", icon: icons.lugares },
+            { lat: 17.7289, lng: -96.5514, title: "Bosque Mesófilo", desc: "Conservación comunitaria y equilibrio ambiental.", img: "https://picsum.photos/id/1018/300/200", layer: "sostenibilidad", icon: icons.sostenibilidad },
+            { lat: 17.7531, lng: -96.4256, title: "Saberes de San Antonio", desc: "Medicina tradicional y el icónico caldo de piedra.", img: "https://picsum.photos/id/102/300/200", layer: "saberes", icon: icons.saberes },
+            { lat: 17.8422, lng: -96.2236, title: "Casas Vernáculas", desc: "Viviendas tradicionales de madera y palmas adaptadas al clima.", img: "https://picsum.photos/id/1040/300/200", layer: "arquitectura", icon: icons.arquitectura },
+            { lat: 18.1469, lng: -96.5114, title: "Bordados Mazatecos", desc: "Textiles que narran la memoria y la fauna local.", img: "https://picsum.photos/id/1060/300/200", layer: "identidad", icon: icons.identidad },
+            { lat: 18.1211, lng: -96.6139, title: "Asamblea Mil Islas", desc: "Decisiones colectivas para el resguardo territorial.", img: "https://picsum.photos/id/1070/300/200", layer: "gobernanza", icon: icons.gobernanza },
+            { lat: 17.7728, lng: -96.3022, title: "Antiguo Camino", desc: "Ruta histórica de trueque y conexión comunitaria.", img: "https://picsum.photos/id/1084/300/200", layer: "rutas", icon: icons.rutas },
+
+            // Ruta Artesanías (Valles Centrales)
+            { lat: 17.1022, lng: -96.7644, title: "Barro Verde Atzompa", desc: "Cerámica tradicional esmaltada herencia zapoteca.", img: "https://picsum.photos/id/111/300/200", layer: "saberes", icon: icons.saberes },
+            { lat: 16.9567, lng: -96.7056, title: "Barro Negro", desc: "Identidad cultural forjada en los hornos de Coyotepec.", img: "https://picsum.photos/id/119/300/200", layer: "identidad", icon: icons.identidad },
+            { lat: 16.8581, lng: -96.6936, title: "Taller Alebrijes", desc: "Figuras mágicas talladas en madera de copal.", img: "https://picsum.photos/id/133/300/200", layer: "saberes", icon: icons.saberes },
+            { lat: 16.7936, lng: -96.6739, title: "Plaza de Ocotlán", desc: "Día de plaza, trueque y gobernanza local.", img: "https://picsum.photos/id/146/300/200", layer: "gobernanza", icon: icons.gobernanza },
+            { lat: 17.0278, lng: -96.7969, title: "Camino Arrazola", desc: "Sendero arbolado usado históricamente por artesanos.", img: "https://picsum.photos/id/152/300/200", layer: "rutas", icon: icons.rutas },
+            { lat: 17.0056, lng: -96.7767, title: "Exconvento Cuilápam", desc: "Arquitectura religiosa del siglo XVI de gran significado.", img: "https://picsum.photos/id/164/300/200", layer: "arquitectura", icon: icons.arquitectura },
+
+            // Ruta Juquila (Sierra Sur)
+            { lat: 16.2378, lng: -97.2925, title: "Santuario Juquila", desc: "Lugar de gran peregrinación y significado religioso.", img: "https://picsum.photos/id/175/300/200", layer: "lugares", icon: icons.lugares },
+            { lat: 16.3353, lng: -97.0903, title: "Puente Juchatengo", desc: "Ruta de peregrinos y conexión de la Sierra con la Costa.", img: "https://picsum.photos/id/183/300/200", layer: "rutas", icon: icons.rutas },
+            { lat: 16.5133, lng: -96.9794, title: "Mezcal Tobalá", desc: "Maguey silvestre preservado comunitariamente.", img: "https://picsum.photos/id/192/300/200", layer: "sostenibilidad", icon: icons.sostenibilidad },
+            { lat: 16.6264, lng: -96.9189, title: "Las Grutas", desc: "Espacios ceremoniales dentro de la montaña.", img: "https://picsum.photos/id/200/300/200", layer: "lugares", icon: icons.lugares },
+
+            // Ruta Costa
+            { lat: 15.6661, lng: -96.5541, title: "Conservación", desc: "Protección de tortugas y ecosistema costero.", img: "https://picsum.photos/id/204/300/200", layer: "sostenibilidad", icon: icons.sostenibilidad },
+            { lat: 15.9723, lng: -97.6258, title: "Laguna Chacahua", desc: "Comunidad Afromexicana y reserva de la biósfera.", img: "https://picsum.photos/id/211/300/200", layer: "identidad", icon: icons.identidad },
+            { lat: 15.7674, lng: -96.1332, title: "Bahías Sostenibles", desc: "Organización turística local y protección arrecifal.", img: "https://picsum.photos/id/214/300/200", layer: "gobernanza", icon: icons.gobernanza },
+            { lat: 15.6622, lng: -96.5117, title: "Cabañas de Palma", desc: "Construcciones bioclimáticas adaptadas a la costa.", img: "https://picsum.photos/id/221/300/200", layer: "arquitectura", icon: icons.arquitectura },
+            { lat: 15.6679, lng: -96.4912, title: "Pesca Artesanal", desc: "Oficio milenario de las cooperativas pesqueras.", img: "https://picsum.photos/id/225/300/200", layer: "saberes", icon: icons.saberes }
+        ];
+
+        function buildPopupHTML(title, desc, img) {
+            return `
+            <div class="w-full h-full relative group">
+                <img src="${img}" alt="${title}" class="w-full h-28 object-cover transition transform group-hover:scale-110" />
+                <div class="absolute inset-0 bg-gradient-to-t from-slate-900 to-transparent"></div>
+                <div class="absolute bottom-0 left-0 p-3 w-full">
+                    <h4 class="font-bold text-sm text-cyan-400 mb-1 drop-shadow-md leading-none">${title}</h4>
+                    <p class="text-[11px] text-slate-200 leading-tight drop-shadow-md">${desc}</p>
+                </div>
+            </div>
+            `;
+        }
+
+        const layerMap = {
+            lugares: layerLugares,
+            sostenibilidad: layerSostenibilidad,
+            saberes: layerSaberes,
+            arquitectura: layerArquitectura,
+            identidad: layerIdentidad,
+            gobernanza: layerGobernanza,
+            rutas: layerRutas
+        };
+
+        bioculturalData.forEach(item => {
+            L.marker([item.lat, item.lng], { icon: item.icon })
+                .bindPopup(buildPopupHTML(item.title, item.desc, item.img), {
+                    className: 'custom-popup'
+                })
+                .addTo(layerMap[item.layer]);
+        });
+
+        // Agregamos algunas capas por defecto para que el usuario las vea al iniciar
+        layerLugares.addTo(map);
+        layerSostenibilidad.addTo(map);
+        layerRutas.addTo(map);
+
+        /* =========================================================
+           TODAS LAS RUTAS
+        ========================================================= */
+
+        const routes = {
+
+            istmo: [
+                { nombre: "Jalapa del Marqués", lat: 16.5054, lng: -95.4542 },
+                { nombre: "Tehuantepec", lat: 16.3211, lng: -95.2411 },
+                { nombre: "Salina Cruz", lat: 16.1822, lng: -95.1956 },
+                { nombre: "Juchitán", lat: 16.4347, lng: -95.0197 },
+                { nombre: "Ixtepec", lat: 16.5606, lng: -95.0958 }
+            ],
+
+            mixteca: [
+                { nombre: "Asunción Nochixtlán", lat: 17.4578, lng: -97.2256 },
+                { nombre: "Yanhuitlán", lat: 17.5139, lng: -97.3392 },
+                { nombre: "Yucunama", lat: 17.5458, lng: -97.4819 },
+                { nombre: "Teposcolula", lat: 17.5133, lng: -97.4883 },
+                { nombre: "Tlaxiaco", lat: 17.2664, lng: -97.6789 },
+                { nombre: "Coixtlahuaca", lat: 17.7214, lng: -97.3208 },
+                { nombre: "Apoala", lat: 17.6489, lng: -97.1350 },
+                { nombre: "Tamazulápam", lat: 17.6797, lng: -97.5689 },
+                { nombre: "Huajuapan", lat: 17.8011, lng: -97.7786 }
+            ],
+
+            artesanias: [
+                { nombre: "Atzompa", lat: 17.1022, lng: -96.7644 },
+                { nombre: "Coyotepec", lat: 16.9567, lng: -96.7056 },
+                { nombre: "Tilcajete", lat: 16.8581, lng: -96.6936 },
+                { nombre: "Jalieza", lat: 16.8408, lng: -96.6575 },
+                { nombre: "San Antonino", lat: 16.8047, lng: -96.6922 },
+                { nombre: "Ocotlán", lat: 16.7936, lng: -96.6739 },
+                { nombre: "Arrazola", lat: 17.0278, lng: -96.7969 },
+                { nombre: "Cuilápam", lat: 17.0056, lng: -96.7767 },
+                { nombre: "Zaachila", lat: 16.9525, lng: -96.7497 }
+            ],
+
+            juquila: [
+                { nombre: "Zimatlán", lat: 16.8706, lng: -96.7847 },
+                { nombre: "Huixtepec", lat: 16.8203, lng: -96.7825 },
+                { nombre: "Ayoquezco", lat: 16.6811, lng: -96.8417 },
+                { nombre: "Las Grutas", lat: 16.6264, lng: -96.9189 },
+                { nombre: "Sola de Vega", lat: 16.5133, lng: -96.9794 },
+                { nombre: "Juchatengo", lat: 16.3353, lng: -97.0903 },
+                { nombre: "Juquila", lat: 16.2378, lng: -97.2925 }
+            ],
+
+            mezcal: [
+                { nombre: "El Tule", lat: 17.0464, lng: -96.6356 },
+                { nombre: "Tlacochahuaya", lat: 17.0633, lng: -96.5744 },
+                { nombre: "Teotitlán", lat: 17.0294, lng: -96.5175 },
+                { nombre: "Tlacolula", lat: 16.9531, lng: -96.4758 },
+                { nombre: "Mitla", lat: 16.9244, lng: -96.2753 },
+                { nombre: "Matatlán", lat: 16.8661, lng: -96.3814 }
+            ],
+
+            costa: [
+                { nombre: "Huatulco", lat: 15.7674, lng: -96.1332 },
+                { nombre: "Puerto Ángel", lat: 15.6679, lng: -96.4912 },
+                { nombre: "Zipolite", lat: 15.6622, lng: -96.5117 },
+                { nombre: "Mazunte", lat: 15.6661, lng: -96.5541 },
+                { nombre: "Puerto Escondido", lat: 15.8617, lng: -97.0672 },
+                { nombre: "Chacahua", lat: 15.9723, lng: -97.6258 }
+            ],
+
+            sierra: [
+                { nombre: "Ixtepeji", lat: 17.2668, lng: -96.5654 },
+                { nombre: "Benito Juárez", lat: 17.1147, lng: -96.4862 },
+                { nombre: "La Nevería", lat: 17.1264, lng: -96.5269 },
+                { nombre: "Latuvi", lat: 17.1558, lng: -96.5233 },
+                { nombre: "Cuajimoloyas", lat: 17.1189, lng: -96.4444 },
+                { nombre: "Llano Grande", lat: 17.1183, lng: -96.3769 },
+                { nombre: "Amatlán", lat: 17.2742, lng: -96.4136 },
+                { nombre: "Lachatao", lat: 17.2608, lng: -96.4172 },
+                { nombre: "Guelatao", lat: 17.3181, lng: -96.4919 },
+                { nombre: "Ixtlán", lat: 17.3297, lng: -96.4853 },
+                { nombre: "Capulálpam", lat: 17.3047, lng: -96.4464 }
+            ],
+
+            biosfera: [
+                { nombre: "Cuicatlán", lat: 17.8014, lng: -96.9606 },
+                { nombre: "El Chilar", lat: 17.7125, lng: -96.9158 },
+                { nombre: "Quiotepec", lat: 17.9003, lng: -96.9814 },
+                { nombre: "Pápalo", lat: 17.8447, lng: -96.8833 },
+                { nombre: "Tecomavaca", lat: 17.9625, lng: -97.0256 },
+                { nombre: "Huautla", lat: 18.1314, lng: -96.8417 }
+            ],
+
+            cafe: [
+                { nombre: "Huatulco", lat: 15.8322, lng: -96.3211 },
+                { nombre: "Pluma Hidalgo", lat: 15.9286, lng: -96.4181 },
+                { nombre: "Suchixtepec", lat: 16.0919, lng: -96.4644 },
+                { nombre: "Río Hondo", lat: 16.1158, lng: -96.4958 },
+                { nombre: "San José del Pacífico", lat: 16.1714, lng: -96.5056 },
+                { nombre: "Paxtlán", lat: 16.2208, lng: -96.5036 },
+                { nombre: "Cuixtla", lat: 16.3244, lng: -96.6006 },
+                { nombre: "Miahuatlán", lat: 16.3314, lng: -96.6383 }
+            ],
+
+            chinantla: [
+                { nombre: "Comaltepec", lat: 17.5656, lng: -96.5489 },
+                { nombre: "Tepetotutla", lat: 17.7289, lng: -96.5514 },
+                { nombre: "San Antonio", lat: 17.7531, lng: -96.4256 },
+                { nombre: "Valle Nacional", lat: 17.7728, lng: -96.3022 },
+                { nombre: "Yetla", lat: 17.7478, lng: -96.2694 },
+                { nombre: "Rancho Grande", lat: 17.8286, lng: -96.2917 },
+                { nombre: "Monte Flor", lat: 17.8117, lng: -96.2483 },
+                { nombre: "Vega del Sol", lat: 17.8422, lng: -96.2236 },
+                { nombre: "Ixcatlán", lat: 18.1469, lng: -96.5114 },
+                { nombre: "Mil Islas", lat: 18.1211, lng: -96.6139 },
+                { nombre: "Soyaltepec", lat: 18.2014, lng: -96.3314 },
+                { nombre: "Tuxtepec", lat: 18.0878, lng: -96.1153 }
+            ]
+
+        };
+
+        /* =========================================================
+           VARIABLES
+        ========================================================= */
+
+        let markers = [];
+        let routeLine = null;
+        let gpsMarker = null;
+        let currentRoute = [];
+        let simulationRunning = false;
+
+        /* =========================================================
+           ICONO GPS
+        ========================================================= */
+
+        const gpsIcon = L.divIcon({
+            html: `
+<div style="
+width:24px;
+height:24px;
+border-radius:100%;
+background:#22c55e;
+border:4px solid white;
+box-shadow:0 0 20px #22c55e;
+"></div>
+`,
+            iconSize: [24, 24]
+        });
+
+        /* =========================================================
+           CARGAR RUTA
+        ========================================================= */
+
+        function loadRoute(routeName) {
+
+            clearMap();
+
+            currentRoute = routes[routeName];
+
+            const coordinates = [];
+
+            currentRoute.forEach((point, index) => {
+
+                coordinates.push([point.lat, point.lng]);
+
+                const marker = L.marker([point.lat, point.lng])
+                    .addTo(map)
+                    .bindPopup(`
+<div style="padding:10px">
+<h3 style="font-weight:bold">
+${point.nombre}
+</h3>
+
+<p style="font-size:12px">
+Destino ${index + 1}
+</p>
+</div>
+`);
+
+                markers.push(marker);
+
+            });
+
+            /* linea */
+
+            routeLine = L.polyline(coordinates, {
+                color: "#f97316",
+                weight: 6,
+                opacity: .9,
+                dashArray: "10,10"
+            }).addTo(map);
+
+            map.fitBounds(routeLine.getBounds(), {
+                padding: [50, 50]
+            });
+
+            /* gps */
+
+            gpsMarker = L.marker(coordinates[0], {
+                icon: gpsIcon
+            }).addTo(map);
+
+            /* sidebar */
+
+            renderDestinations();
+
+        }
+
+        /* =========================================================
+           LIMPIAR MAPA
+        ========================================================= */
+
+        function clearMap() {
+
+            markers.forEach(m => map.removeLayer(m));
+
+            markers = [];
+
+            if (routeLine) {
+                map.removeLayer(routeLine);
+            }
+
+            if (gpsMarker) {
+                map.removeLayer(gpsMarker);
+            }
+
+        }
+
+        /* =========================================================
+           DESTINOS
+        ========================================================= */
+
+        function renderDestinations() {
+
+            const container = document.getElementById("destinations");
+
+            container.innerHTML = "";
+
+            currentRoute.forEach((d, index) => {
+
+                container.innerHTML += `
+
+<div
+onclick="focusDestination(${index})"
+class="route-btn bg-slate-900 border border-slate-700 rounded-2xl p-4 cursor-pointer"
+>
+
+<div class="flex justify-between items-center">
+
+<div>
+
+<h3 class="text-white font-bold text-sm">
+${d.nombre}
+</h3>
+
+<p class="text-orange-400 text-xs mt-1">
+Destino ${index + 1}
+</p>
+
+</div>
+
+<div class="text-white font-black text-lg">
+${index + 1}
+</div>
+
+</div>
+
+</div>
+
+`;
+
+            });
+
+        }
+
+        /* =========================================================
+           FOCUS
+        ========================================================= */
+
+        function focusDestination(index) {
+
+            const d = currentRoute[index];
+
+            map.flyTo([d.lat, d.lng], 12, {
+                duration: 2
+            });
+
+            markers[index].openPopup();
+
+        }
+
+        /* =========================================================
+           GPS SIMULADO
+        ========================================================= */
+
+        async function startSimulation() {
+
+            if (simulationRunning) return;
+
+            simulationRunning = true;
+
+            document.getElementById("gpsStatus")
+                .classList.remove("bg-red-500");
+
+            document.getElementById("gpsStatus")
+                .classList.add("bg-green-500");
+
+            document.getElementById("gpsText")
+                .innerText = "GPS SIMULADO ACTIVO";
+
+            for (let i = 0; i < currentRoute.length - 1; i++) {
+
+                if (!simulationRunning) return;
+
+                const start = currentRoute[i];
+                const end = currentRoute[i + 1];
+
+                const steps = 100;
+
+                for (let j = 0; j <= steps; j++) {
+
+                    if (!simulationRunning) return;
+
+                    const lat =
+                        start.lat + ((end.lat - start.lat) * (j / steps));
+
+                    const lng =
+                        start.lng + ((end.lng - start.lng) * (j / steps));
+
+                    gpsMarker.setLatLng([lat, lng]);
+
+                    map.panTo([lat, lng], {
+                        animate: true
+                    });
+
+                    document.getElementById("locationText")
+                        .innerHTML = `
+📍 ${start.nombre}
+`;
+
+                    const progress =
+                        ((i + (j / steps)) / (currentRoute.length - 1)) * 100;
+
+                    document.getElementById("progressBar")
+                        .style.width = progress + "%";
+
+                    document.getElementById("progressText")
+                        .innerText = Math.floor(progress) + "%";
+
+                    await sleep(60);
+
+                }
+
+            }
+
+        }
+
+        /* =========================================================
+           DETENER
+        ========================================================= */
+
+        function stopSimulation() {
+
+            simulationRunning = false;
+
+            document.getElementById("gpsStatus")
+                .classList.remove("bg-green-500");
+
+            document.getElementById("gpsStatus")
+                .classList.add("bg-red-500");
+
+            document.getElementById("gpsText")
+                .innerText = "GPS INACTIVO";
+
+        }
+
+        /* =========================================================
+           GPS REAL
+        ========================================================= */
+
+        function activateRealGPS() {
+
+            if (!navigator.geolocation) {
+
+                alert("GPS no soportado");
+
+                return;
+
+            }
+
+            navigator.geolocation.watchPosition(pos => {
+
+                const lat = pos.coords.latitude;
+                const lng = pos.coords.longitude;
+
+                gpsMarker.setLatLng([lat, lng]);
+
+                map.flyTo([lat, lng], 14);
+
+                document.getElementById("gpsText")
+                    .innerText = "GPS REAL ACTIVO";
+
+            });
+
+        }
+
+        /* =========================================================
+           SLEEP
+        ========================================================= */
+
+        function sleep(ms) {
+
+            return new Promise(resolve => setTimeout(resolve, ms));
+
+        }
+
+        /* =========================================================
+           OFFLINE
+        ========================================================= */
+
+        window.addEventListener("offline", () => {
+
+            document.querySelector(".live-dot")
+                .style.background = "#ef4444";
+
+        });
+
+        window.addEventListener("online", () => {
+
+            document.querySelector(".live-dot")
+                .style.background = "#22c55e";
+
+        });
+
+        /* =========================================================
+           ASISTENTE IA (LLM SIMULADO E INTEGRADO AL MAPA)
+        ========================================================= */
+
+        function toggleChat() {
+            const panel = document.getElementById('chatPanel');
+            if (panel.classList.contains('translate-x-full')) {
+                panel.classList.remove('translate-x-full');
+            } else {
+                panel.classList.add('translate-x-full');
+            }
+        }
+
+        function simulateQuery(text) {
+            const input = document.getElementById('chatInput');
+            input.value = text;
+            document.getElementById('chatForm').dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
+        }
+
+        function goToChinantla(index) {
+            document.getElementById("routeSelector").value = "chinantla";
+            loadRoute("chinantla");
+            focusDestination(index);
+            if (window.innerWidth < 768) {
+                toggleChat();
+            }
+        }
+
+        const knowledgeBase = {
+            general: "La Ruta Chinantla es un área próspera donde convergen la cultura, la naturaleza y las tradiciones de los pueblos chinantecos y mazatecos. Visitarla es hacer un recorrido por la diversidad biológica (jaguares, ocelotes, tucanes) y entender la cosmovisión de estos pueblos milenarios. Comprende 8 municipios en Tuxtepec e Ixtlán, integrando 11 comunidades lineales.",
+            comunidades: [
+                { id: 0, name: "Santiago Comaltepec", keywords: ["comaltepec", "cascada de niebla", "nubes", "cerro redondo", "cerro hormiga", "cerro pelón"], info: "Santiago Comaltepec (Cascada de Niebla) se encuentra entre un mar de nubes. Cuenta con tres picos montañosos de más de 3,000 msnm: Cerro Redondo, Cerro Hormiga y Cerro Pelón. Cerca de este último se ubica la empresa ecoturística 'Cascada de Niebla'." },
+                { id: 1, name: "Santa Cruz Tepetotutla", keywords: ["santa cruz", "tepetotutla", "museo vivo", "bosque mesófilo", "bosque de niebla", "senderos"], info: "Santa Cruz Tepetotutla es el sendero de un museo vivo. Está en las laderas del Golfo de México, donde el agua alimenta el bosque mesófilo de montaña (bosque de niebla), el cual puedes recorrer a través de hermosos senderos." },
+                { id: 2, name: "San Antonio del Barrio", keywords: ["san antonio", "barrio", "caldo de piedra", "río perfume", "tumba prehispánica", "selva mediana"], info: "En San Antonio del Barrio puedes saborear el delicioso Caldo de piedra preparado en los orificios del Río Perfume. Además, puedes conocer su tumba prehispánica y maravillarte con la flora y fauna de la selva mediana." },
+                { id: 3, name: "San Juan Bautista, Valle Nacional", keywords: ["valle nacional", "san juan bautista", "chinantla baja", "río papaloapan", "hospedaje"], info: "San Juan Bautista, Valle Nacional está ubicado en la Chinantla Baja, rodeado de grandes montañas a orillas del río Valle Nacional. Es ideal para encontrar variedad de alimentos, hospedaje y servicios." },
+                { id: 4, name: "San Mateo Yetla", keywords: ["san mateo", "yetla", "arrullo del río", "huipil", "árbol de la vida"], info: "En San Mateo Yetla puedes dormir con el arrullo del río y realizar actividades de aventura. Destaca por su rica gastronomía, sus tradiciones y la hermosa vestimenta tradicional: el huipil adornado con el árbol de la vida." },
+                { id: 5, name: "Rancho Grande", keywords: ["rancho grande", "café", "telar de cintura", "plantaciones"], info: "Rancho Grande está localizado en la parte alta del cerro en Valle Nacional. Destaca por sus plantaciones de café y el arte del telar de cintura heredado por generaciones, además de su deliciosa gastronomía." },
+                { id: 6, name: "Cerro Marín (Monte Flor)", keywords: ["cerro marín", "monte flor", "manantial", "ojos de agua", "caverna", "marín viejo"], info: "Cerro Marín (Monte Flor) es un manantial de vida a orillas del río Valle Nacional. Cuenta con manantiales, ojos de agua, senderos hacia la caverna y Marín Viejo. Perfecto para recorrer en bicicleta y conocer su museo local." },
+                { id: 7, name: "Vega del Sol", keywords: ["vega del sol", "zuzul", "perla", "color azul celeste", "manantial"], info: "Vega del Sol, también conocida como 'Zuzul, Perla de la Chinantla', es un pueblo chinanteco famoso por sus ríos y su fascinante manantial de color azul celeste." },
+                { id: 8, name: "San Pedro Ixcatlán", keywords: ["san pedro", "ixcatlán", "mazateca baja", "presa miguel alemán", "islas", "bordado", "pájaros"], info: "San Pedro Ixcatlán se sitúa en la región mazateca baja. La zona fue inundada para crear la presa 'Miguel Alemán', formando islas. Sus mujeres bordan a mano huipiles con figuras de pájaros y flores en un proceso que dura hasta seis meses." },
+                { id: 9, name: "Cerro Quemado 'Mil Islas'", keywords: ["cerro quemado", "mil islas", "canoas", "kayak", "caverna cabeza de tilpan", "cascada de temporal"], info: "Cerro Quemado 'Mil Islas' es el paraíso de la Mazateca Baja. Aquí puedes recorrer las islas en canoas o kayak, adentrarte en la Caverna Cabeza de Tilpan o visitar la Cascada de Temporal." },
+                { id: 10, name: "San Miguel Soyaltepec", keywords: ["san miguel", "soyaltepec", "temascal", "playa jícama", "río tonto"], info: "San Miguel Soyaltepec es una localidad mazateca en Tuxtepec. Se ubica cerca de la cortina de la presa Miguel Alemán, donde se forman parajes como 'Playa Jícama' y 'Río Tonto'. Sus islas y tradiciones son un tesoro por explorar." },
+                { id: 11, name: "San Juan Bautista Tuxtepec", keywords: ["tuxtepec", "papaloapan", "centro urbano", "comercial", "agrícola"], info: "San Juan Bautista Tuxtepec es la segunda ciudad más poblada de Oaxaca y el centro urbano de la Cuenca del Papaloapan. Tiene gran actividad agrícola, ganadera y comercial." }
+            ]
+        };
+
+        function handleChatSubmit(e) {
+            e.preventDefault();
+            const input = document.getElementById('chatInput');
+            const query = input.value.trim();
+            if (!query) return;
+
+            addChatMessage(query, 'user');
+            input.value = '';
+
+            const typingId = showTyping();
+
+            setTimeout(() => {
+                removeTyping(typingId);
+                const response = generateAIResponse(query.toLowerCase());
+                addChatMessage(response, 'ai');
+                lucide.createIcons();
+            }, 1200 + Math.random() * 800);
+        }
+
+        function addChatMessage(text, sender) {
+            const container = document.getElementById('chatMessages');
+            const div = document.createElement('div');
+
+            if (sender === 'user') {
+                div.className = 'flex gap-4 max-w-[90%] self-end ml-auto flex-row-reverse';
+                const safeText = text.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+                div.innerHTML = "<div class='w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shrink-0 mt-1 shadow-lg'><i data-lucide='user' class='text-white w-5 h-5'></i></div>" +
+                    "<div class='bg-gradient-to-br from-indigo-600 to-blue-700 p-4 rounded-2xl rounded-tr-sm shadow-xl'><p class='text-sm text-white leading-relaxed'>" + safeText + "</p></div>";
+            } else {
+                div.className = 'flex gap-4 max-w-[95%]';
+                div.innerHTML = "<div class='w-10 h-10 rounded-xl bg-slate-800 flex items-center justify-center shrink-0 mt-1 border border-cyan-500/30 shadow-[0_0_15px_rgba(6,182,212,0.2)]'><img src='savi.png' class='w-6 h-6 object-contain'></div>" +
+                    "<div class='bg-slate-800/80 p-5 rounded-2xl rounded-tl-sm border border-slate-700 shadow-xl backdrop-blur-sm'><div class='text-sm text-slate-200 leading-relaxed'>" + text + "</div></div>";
+            }
+
+            container.appendChild(div);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function showTyping() {
+            const container = document.getElementById('chatMessages');
+            const id = 'typing-' + Date.now();
+            const div = document.createElement('div');
+            div.id = id;
+            div.className = 'flex gap-4 max-w-[95%]';
+            div.innerHTML = "<div class='w-10 h-10 rounded-xl bg-slate-800 flex items-center justify-center shrink-0 mt-1 border border-cyan-500/30 shadow-[0_0_15px_rgba(6,182,212,0.2)]'><img src='savi.png' class='w-6 h-6 object-contain animate-pulse'></div>" +
+                "<div class='bg-slate-800/80 p-5 rounded-2xl rounded-tl-sm border border-slate-700 flex items-center gap-2 shadow-xl'><div class='w-2 h-2 bg-cyan-400 rounded-full animate-[bounce_1s_infinite_0ms]'></div><div class='w-2 h-2 bg-cyan-400 rounded-full animate-[bounce_1s_infinite_200ms]'></div><div class='w-2 h-2 bg-cyan-400 rounded-full animate-[bounce_1s_infinite_400ms]'></div></div>";
+            container.appendChild(div);
+            container.scrollTop = container.scrollHeight;
+            lucide.createIcons();
+            return id;
+        }
+
+        function removeTyping(id) {
+            const el = document.getElementById(id);
+            if (el) el.remove();
+        }
+
+        function getMapButtonHtml(id, name) {
+            return "<button onclick='goToChinantla(" + id + ")' class='mt-4 text-xs bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-300 font-semibold py-2.5 px-4 rounded-xl border border-cyan-500/30 hover:border-cyan-400 shadow-lg transition-all flex items-center gap-2'><i data-lucide='map-pin' class='w-4 h-4'></i> 📍 Ver en el mapa</button>";
+        }
+
+        function generateAIResponse(query) {
+            let foundMatches = [];
+            knowledgeBase.comunidades.forEach(comunidad => {
+                const match = comunidad.keywords.some(kw => query.includes(kw));
+                if (match) foundMatches.push(comunidad);
+            });
+
+            if (foundMatches.length > 0) {
+                if (foundMatches.length === 1) {
+                    let btn = getMapButtonHtml(foundMatches[0].id, foundMatches[0].name);
+                    return "<strong>" + foundMatches[0].name + "</strong>: " + foundMatches[0].info + "<br>" + btn;
+                } else {
+                    let res = "He encontrado información sobre estos lugares:<br><ul class='list-disc pl-4 mt-2 mb-2 space-y-3'>";
+                    foundMatches.forEach(f => {
+                        res += "<li><strong>" + f.name + "</strong>: " + f.info + "<br>" + getMapButtonHtml(f.id, f.name) + "</li>";
+                    });
+                    res += "</ul>";
+                    return res;
+                }
+            }
+
+            if (query.includes('pueblo') || query.includes('recomiéndame') || query.includes('recomienda')) {
+                let options = [
+                    knowledgeBase.comunidades[1], // Tepetotutla
+                    knowledgeBase.comunidades[4], // Yetla
+                    knowledgeBase.comunidades[7], // Vega del sol
+                    knowledgeBase.comunidades[9]  // Mil islas
+                ];
+                let res = "Basado en el conocimiento comunitario, aquí tienes opciones en la <strong>Ruta Chinantla</strong>:<br><div class='mt-4 space-y-3'>";
+                options.forEach(opt => {
+                    res += "<div class='bg-slate-900/60 p-4 rounded-xl border border-slate-700 hover:border-cyan-500/40 transition-all shadow-md'><p class='font-bold text-cyan-300 text-base'>" + opt.name + "</p><p class='text-sm mt-1 text-slate-400 leading-relaxed'>" + opt.info + "</p>" + getMapButtonHtml(opt.id, opt.name) + "</div>";
+                });
+                res += "</div>";
+                return res;
+            }
+
+            if (query.includes('cascada') || query.includes('agua') || query.includes('río') || query.includes('manantial') || query.includes('azul')) {
+                return "Si buscas atractivos con agua, la Ruta Chinantla es ideal. Te recomiendo visitar <strong>Vega del Sol (Zuzul)</strong> por su manantial azul celeste, <strong>Cerro Quemado 'Mil Islas'</strong> para la Cascada de Temporal y andar en kayak, o <strong>Santiago Comaltepec</strong> para la Cascada de Niebla.<br><div class='flex gap-2 flex-wrap'>" +
+                    getMapButtonHtml(7, 'Vega del Sol') +
+                    getMapButtonHtml(9, 'Mil Islas') +
+                    getMapButtonHtml(0, 'Comaltepec') + "</div>";
+            }
+
+            if (query.includes('comer') || query.includes('comida') || query.includes('gastronomía') || query.includes('caldo')) {
+                return "La gastronomía es un pilar de la ruta. Tienes que ir a <strong>San Antonio del Barrio</strong> para probar el famoso <strong>Caldo de piedra</strong>, preparado en el Río Perfume. También <strong>Rancho Grande</strong> ofrece exquisitos platillos y plantaciones de café.<br><div class='flex gap-2 flex-wrap'>" +
+                    getMapButtonHtml(2, 'San Antonio') +
+                    getMapButtonHtml(5, 'Rancho Grande') + "</div>";
+            }
+
+            if (query.includes('cultura') || query.includes('etnia') || query.includes('huipil') || query.includes('bordado')) {
+                return "La cultura está viva en sus textiles. En <strong>San Mateo Yetla</strong> verás el huipil con el árbol de la vida. Y en <strong>San Pedro Ixcatlán</strong>, las mujeres bordan a mano huipiles en un proceso de hasta seis meses.<br><div class='flex gap-2 flex-wrap'>" +
+                    getMapButtonHtml(4, 'Yetla') +
+                    getMapButtonHtml(8, 'Ixcatlán') + "</div>";
+            }
+
+            if (query.includes('animal') || query.includes('fauna') || query.includes('jaguar') || query.includes('naturaleza')) {
+                return "¡La biodiversidad aquí es increíble! Los pueblos protegen un territorio donde viven libres el <strong>jaguar, ocelote, pericos y tucanes</strong>.";
+            }
+
+            return knowledgeBase.general + "<br><br>Intenta preguntarme:<br><button onclick=\"simulateQuery('Recomiéndame un pueblo de la Chinantla')\" class='mt-4 text-sm bg-slate-900/50 hover:bg-cyan-900/40 text-cyan-300 py-3 px-4 rounded-xl transition-all border border-cyan-500/20 hover:border-cyan-400/50 flex items-center gap-3'><div class='bg-cyan-500/10 p-2 rounded-lg'><i data-lucide='sparkles' class='w-4 h-4 text-cyan-400'></i></div><span class='font-medium'>Recomiéndame un pueblo de la ruta</span></button>";
+        }
+
+        /* =========================================================
+           INIT
+        ========================================================= */
+
+        loadRoute("istmo");
+
+        lucide.createIcons();
+
+    </script>
+
+</body>
+
+</html>
